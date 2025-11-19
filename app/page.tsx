@@ -3,14 +3,16 @@
 import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2 } from 'lucide-react'
+import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { GeneralModeForm } from "@/components/prompt-forge/general-mode-form"
 import { CodingModeForm } from "@/components/prompt-forge/coding-mode-form"
 import { PromptPreview } from "@/components/prompt-forge/prompt-preview"
+import { TemplateLibrary } from "@/components/prompt-forge/template-library"
 import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
+import type { PromptTemplate } from "@/lib/templates"
 
 export default function PromptForgePage() {
   const [darkMode, setDarkMode] = useState(false)
@@ -34,6 +36,9 @@ export default function PromptForgePage() {
   const [generatedPrompt, setGeneratedPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+
+  // Template library
+  const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false)
 
   // Load dark mode preference from localStorage
   useEffect(() => {
@@ -157,6 +162,31 @@ export default function PromptForgePage() {
     toast({
       title: "Cleared",
       description: "All fields have been reset.",
+    })
+  }
+
+  const loadTemplate = (template: PromptTemplate) => {
+    // Switch to the appropriate tab
+    setActiveTab(template.mode)
+    
+    // Load template data
+    setPersona(template.data.persona || "")
+    setUseCase(template.data.useCase || "")
+    setTone(template.data.tone || "")
+    setOutputFormat(template.data.outputFormat || "")
+    setTopic(template.data.topic || "")
+    setConstraints(template.data.constraints || "")
+    
+    // Load coding-specific fields if applicable
+    if (template.mode === 'coding') {
+      setLanguage(template.data.language || "")
+      setCodeSnippet(template.data.codeSnippet || "")
+      setErrorMessage(template.data.errorMessage || "")
+    }
+    
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" has been loaded into the form.`,
     })
   }
 
@@ -358,6 +388,25 @@ export default function PromptForgePage() {
                 </TabsContent>
               </Tabs>
 
+              {/* Template Library Button */}
+              <motion.div 
+                className="mb-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <Button 
+                  onClick={() => setIsTemplateLibraryOpen(true)}
+                  variant="outline"
+                  className="w-full bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 hover:bg-white dark:hover:bg-white/10 h-12 gap-2"
+                  size="lg"
+                >
+                  <BookTemplate className="h-5 w-5" />
+                  <span>Browse Templates</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Study, Viva, Coding & More</span>
+                </Button>
+              </motion.div>
+
               {/* Action Buttons */}
               <motion.div 
                 className="flex gap-3"
@@ -442,6 +491,25 @@ export default function PromptForgePage() {
             </motion.div>
           </div>
         </motion.footer>
+
+        {/* Template Library Dialog */}
+        <TemplateLibrary
+          isOpen={isTemplateLibraryOpen}
+          onClose={() => setIsTemplateLibraryOpen(false)}
+          onLoadTemplate={loadTemplate}
+          currentFormData={{
+            persona,
+            useCase,
+            tone,
+            outputFormat,
+            topic,
+            constraints,
+            language,
+            codeSnippet,
+            errorMessage
+          }}
+          currentMode={activeTab as 'general' | 'coding'}
+        />
 
         <Toaster />
       </div>
