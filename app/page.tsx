@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2 } from 'lucide-react'
@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { GeneralModeForm } from "@/components/prompt-forge/general-mode-form"
 import { CodingModeForm } from "@/components/prompt-forge/coding-mode-form"
 import { PromptPreview } from "@/components/prompt-forge/prompt-preview"
+import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
 
 export default function PromptForgePage() {
   const [darkMode, setDarkMode] = useState(false)
@@ -55,57 +56,58 @@ export default function PromptForgePage() {
     }
   }
 
+  // Debounced live preview update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateLivePreview()
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timer)
+  }, [persona, useCase, tone, outputFormat, topic, constraints, language, codeSnippet, errorMessage, activeTab])
+
+  const updateLivePreview = useCallback(() => {
+    // Only update if there's meaningful content
+    if (!topic && !persona && !useCase) {
+      setGeneratedPrompt("")
+      return
+    }
+
+    let prompt = ""
+    
+    if (activeTab === "general") {
+      const params: GeneralPromptParams = {
+        persona,
+        useCase,
+        tone,
+        outputFormat,
+        topic,
+        constraints
+      }
+      prompt = generateGeneralPrompt(params)
+    } else {
+      const params: CodingPromptParams = {
+        persona,
+        useCase,
+        tone,
+        outputFormat,
+        topic,
+        constraints,
+        language,
+        codeSnippet,
+        errorMessage
+      }
+      prompt = generateCodingPrompt(params)
+    }
+
+    setGeneratedPrompt(prompt)
+  }, [activeTab, persona, useCase, tone, outputFormat, topic, constraints, language, codeSnippet, errorMessage])
+
   const generatePrompt = () => {
     setIsGenerating(true)
     
     // Simulate generation delay for better UX
     setTimeout(() => {
-      let prompt = ""
-
-      if (activeTab === "general") {
-      prompt = `You are ${persona || "an assistant"}.
-
-Task: Based on the description below, generate the best possible response.
-
-User description: ${topic || "[No topic provided]"}
-
-Primary use case: ${useCase || "[Not specified]"}
-Tone: ${tone || "[Not specified]"}
-Output format: ${outputFormat || "[Not specified]"}
-
-Additional instructions: ${constraints || "[None]"}
-
-If anything is ambiguous, make reasonable assumptions.`
-    } else {
-      prompt = `You are ${persona || "an assistant"}.
-
-Task: Based on the description below, generate the best possible response.
-
-User description: ${topic || "[No topic provided]"}
-
-Primary use case: ${useCase || "[Not specified]"}
-Tone: ${tone || "[Not specified]"}
-Output format: ${outputFormat || "[Not specified]"}
-
-Programming language: ${language || "[Not specified]"}
-
-Code snippet:
-"""
-${codeSnippet || "[No code provided]"}
-"""
-
-Error message:
-"""
-${errorMessage || "[No error provided]"}
-"""
-
-Additional instructions: ${constraints || "[None]"}
-
-Explain root cause, steps to fix, and provide corrected code if required.
-If anything is ambiguous, make reasonable assumptions.`
-    }
-
-      setGeneratedPrompt(prompt)
+      updateLivePreview()
       setIsGenerating(false)
       toast({
         title: "✨ Prompt Generated!",
