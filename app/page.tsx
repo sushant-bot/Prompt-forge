@@ -277,6 +277,23 @@ export default function PromptForgePage() {
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.25 }}
+                >
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setIsTemplateLibraryOpen(true)}
+                    className="rounded-full h-10 px-4 bg-white/50 dark:bg-black/30 hover:bg-white/70 dark:hover:bg-black/50 border border-white/20 backdrop-blur-md gap-2"
+                  >
+                    <BookTemplate className="h-4 w-4" />
+                    <span className="text-sm font-medium hidden sm:inline">Templates</span>
+                  </Button>
+                </motion.div>
+                
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Button 
                     variant="ghost" 
