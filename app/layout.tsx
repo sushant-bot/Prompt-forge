@@ -10,9 +10,9 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "PromptForge - Professional Prompt Generator",
-  description: "Create structured, high-quality prompts for general tasks and coding with PromptForge. 100% free, browser-based prompt generator.",
-  generator: "v0.app",
+  title: "PromptiFy - Professional Prompt Generator",
+  description: "Create structured, high-quality prompts for general tasks and coding with PromptiFy . 100% free, browser-based prompt generator.",
+  generator: "Next.js",
 }
 
 export default function RootLayout({
