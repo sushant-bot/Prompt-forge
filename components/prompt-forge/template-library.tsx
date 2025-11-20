@@ -88,28 +88,32 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-5xl max-h-[85vh] p-0">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <BookTemplate className="h-6 w-6" />
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <BookTemplate className="h-7 w-7 text-primary" />
               Template Library
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-base mt-2">
               Choose from built-in templates or your saved templates to quickly start creating prompts
             </DialogDescription>
           </DialogHeader>
 
-          <div className="px-6">
+          <div className="px-6 py-4">
             <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-5 h-auto p-1.5 bg-muted/50">
                 {TEMPLATE_CATEGORIES.map(cat => (
-                  <TabsTrigger key={cat.id} value={cat.id} className="gap-2">
-                    <span>{cat.icon}</span>
+                  <TabsTrigger 
+                    key={cat.id} 
+                    value={cat.id} 
+                    className="gap-2 px-4 py-3 text-sm font-medium data-[state=active]:shadow-md transition-all"
+                  >
+                    <span className="text-base">{cat.icon}</span>
                     <span className="hidden sm:inline">{cat.name}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
 
-              <ScrollArea className="h-[400px] mt-4">
+              <ScrollArea className="h-[420px] mt-6">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeCategory}
@@ -117,16 +121,16 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="grid gap-4 pr-4"
+                    className="grid gap-5 pr-4"
                   >
                     {filteredTemplates.length === 0 ? (
-                      <Card className="bg-muted">
-                        <CardContent className="flex flex-col items-center justify-center py-12">
-                          <BookTemplate className="h-12 w-12 text-muted-foreground mb-4" />
-                          <p className="text-muted-foreground text-center">
+                      <Card className="bg-muted/30 border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-16">
+                          <BookTemplate className="h-16 w-16 text-muted-foreground/60 mb-4" />
+                          <p className="text-muted-foreground text-center text-base">
                             No templates in this category yet.
                             {activeCategory === 'custom' && (
-                              <span className="block mt-2">Save your current form as a template to get started!</span>
+                              <span className="block mt-3 text-sm">Save your current form as a template to get started!</span>
                             )}
                           </p>
                         </CardContent>
@@ -135,20 +139,24 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                       filteredTemplates.map(template => (
                         <Card 
                           key={template.id}
-                          className="hover:shadow-lg transition-shadow cursor-pointer"
+                          className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer group"
                         >
-                          <CardHeader>
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <CardTitle className="text-lg">{template.name}</CardTitle>
-                                <CardDescription className="mt-1">{template.description}</CardDescription>
+                          <CardHeader className="pb-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                                  {template.name}
+                                </CardTitle>
+                                <CardDescription className="mt-2 text-sm leading-relaxed">
+                                  {template.description}
+                                </CardDescription>
                               </div>
-                              <div className="flex items-center gap-2 ml-4">
+                              <div className="flex items-center gap-2 shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleLoadTemplate(template)}
-                                  className="bg-primary/10 hover:bg-primary/20"
+                                  className="bg-primary/10 hover:bg-primary/20 text-primary font-medium px-4 py-2 h-9"
                                 >
                                   Load
                                 </Button>
@@ -157,7 +165,7 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeleteTemplate(template.id)}
-                                    className="text-destructive hover:text-destructive"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 px-3 py-2 h-9"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -165,15 +173,15 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                               </div>
                             </div>
                           </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2 text-xs">
-                              <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">
+                          <CardContent className="pt-0">
+                            <div className="flex flex-wrap gap-2">
+                              <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
                                 {template.mode === 'general' ? '📝 General' : '💻 Coding'}
                               </span>
-                              <span className="px-2 py-1 rounded-full bg-secondary">
+                              <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
                                 {template.data.tone || 'No tone'}
                               </span>
-                              <span className="px-2 py-1 rounded-full bg-secondary">
+                              <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
                                 {template.data.outputFormat || 'No format'}
                               </span>
                             </div>
@@ -187,12 +195,12 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
             </Tabs>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+          <DialogFooter className="px-6 py-5 border-t bg-muted/20">
+            <Button variant="outline" onClick={onClose} className="px-6">
               Close
             </Button>
             {currentFormData && (
-              <Button onClick={() => setIsSaveDialogOpen(true)} className="gap-2">
+              <Button onClick={() => setIsSaveDialogOpen(true)} className="gap-2 px-6">
                 <Save className="h-4 w-4" />
                 Save Current as Template
               </Button>
@@ -203,45 +211,60 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
 
       {/* Save Template Dialog */}
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Save Current Form as Template</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Save className="h-5 w-5 text-primary" />
+              Save Current Form as Template
+            </DialogTitle>
+            <DialogDescription className="text-sm mt-2">
               Give your template a name and description to save it for later use
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label htmlFor="template-name">Template Name *</Label>
+              <Label htmlFor="template-name" className="text-sm font-medium">
+                Template Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="template-name"
                 placeholder="e.g., My Custom Analysis Template"
                 value={newTemplateName}
                 onChange={(e) => setNewTemplateName(e.target.value)}
+                className="h-10"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="template-description">Description</Label>
+              <Label htmlFor="template-description" className="text-sm font-medium">
+                Description
+              </Label>
               <Textarea
                 id="template-description"
                 placeholder="Describe what this template is for..."
                 value={newTemplateDescription}
                 onChange={(e) => setNewTemplateDescription(e.target.value)}
                 rows={3}
+                className="resize-none"
               />
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsSaveDialogOpen(false)}
+              className="px-6"
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleSaveCurrentAsTemplate}
               disabled={!newTemplateName}
+              className="px-6"
             >
+              <Save className="h-4 w-4 mr-2" />
               Save Template
             </Button>
           </DialogFooter>
