@@ -65,10 +65,19 @@ export function PromptHistory({ onRestore, onHistoryUpdate }: PromptHistoryProps
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
-  const [stats, setStats] = useState(getHistoryStats())
+  const [stats, setStats] = useState({
+    total: 0,
+    general: 0,
+    coding: 0,
+    today: 0,
+    thisWeek: 0
+  })
+  // Mounted flag to avoid hydration text mismatch (server vs client counts)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     loadHistory()
+    setMounted(true)
   }, [])
 
   const loadHistory = () => {
@@ -147,9 +156,15 @@ export function PromptHistory({ onRestore, onHistoryUpdate }: PromptHistoryProps
               <Clock className="h-5 w-5 text-primary" />
               Prompt History
             </CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-300 mt-1">
-              {stats.total} prompt{stats.total !== 1 ? 's' : ''} saved • 
-              {stats.today > 0 && ` ${stats.today} today`}
+            <CardDescription className="text-slate-600 dark:text-slate-300 mt-1" suppressHydrationWarning>
+              {mounted ? (
+                <>
+                  {stats.total} prompt{stats.total !== 1 ? 's' : ''} saved
+                  {stats.today > 0 && ` • ${stats.today} today`}
+                </>
+              ) : (
+                'Loading history...'
+              )}
             </CardDescription>
           </div>
           {history.length > 0 && (

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate } from 'lucide-react'
+import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate, LogIn, LogOut } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -15,11 +15,16 @@ import { PromptHistory } from "@/components/prompt-forge/prompt-history"
 import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
 import type { PromptTemplate } from "@/lib/templates"
 import { saveToHistory, type HistoryItem } from "@/lib/history"
+import { AuthDialog } from "@/components/auth/auth-dialog"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function PromptForgePage() {
+  const [mounted, setMounted] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
   const { toast } = useToast()
+  const { user, loading, signOut } = useAuth()
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
 
   // General mode fields
   const [persona, setPersona] = useState("")
@@ -45,8 +50,9 @@ export default function PromptForgePage() {
   // History trigger for re-rendering
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0)
 
-  // Load dark mode preference from localStorage
+  // Load dark mode preference from localStorage and mark as mounted
   useEffect(() => {
+    setMounted(true)
     const savedTheme = localStorage.getItem("theme")
     if (savedTheme === "dark") {
       setDarkMode(true)
@@ -326,6 +332,43 @@ export default function PromptForgePage() {
                   </div>
                 </motion.div>
                 
+                {mounted && user ? (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.22 }}
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => signOut()}
+                      className="rounded-full h-10 px-4 bg-white/50 dark:bg-black/30 hover:bg-white/70 dark:hover:bg-black/50 border border-white/20 backdrop-blur-md gap-2"
+                    >
+                      <span className="text-sm font-medium hidden sm:inline">{user.email?.split('@')[0]}</span>
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </motion.div>
+                ) : (
+                  mounted && !loading && (
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.22 }}
+                    >
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsAuthDialogOpen(true)}
+                        className="rounded-full h-10 px-4 bg-linear-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white border-none backdrop-blur-md gap-2 shadow-lg"
+                      >
+                        <LogIn className="h-4 w-4" />
+                        <span className="text-sm font-medium hidden sm:inline">Sign In</span>
+                      </Button>
+                    </motion.div>
+                  )
+                )}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -594,6 +637,7 @@ export default function PromptForgePage() {
           currentMode={activeTab as 'general' | 'coding'}
         />
 
+        <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
         <Toaster />
       </div>
     </motion.div>

@@ -15,11 +15,12 @@ import {
   getAllTemplates, 
   getTemplatesByCategory, 
   saveTemplate, 
-  updateTemplate, 
   deleteTemplate,
   TEMPLATE_CATEGORIES,
   type PromptTemplate 
 } from "@/lib/templates"
+import { useAuth } from "@/contexts/auth-context"
+import { fetchTemplates, createTemplate, deleteTemplateCloud } from "@/lib/supabase-data"
 
 interface TemplateLibraryProps {
   isOpen: boolean
@@ -31,6 +32,9 @@ interface TemplateLibraryProps {
 
 export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormData, currentMode }: TemplateLibraryProps) {
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
+  const [cloudIds, setCloudIds] = useState<Set<string>>(new Set())
+  const [loadingCloud, setLoadingCloud] = useState(false)
+  const { user } = useAuth()
   const [activeCategory, setActiveCategory] = useState<string>('study')
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null)
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
@@ -43,8 +47,41 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
     }
   }, [isOpen])
 
-  const loadTemplates = () => {
-    setTemplates(getAllTemplates())
+  const loadTemplates = async () => {
+    const localAll = getAllTemplates()
+    if (!user) {
+      setTemplates(localAll)
+      setCloudIds(new Set())
+      return
+    }
+    setLoadingCloud(true)
+    try {
+      const cloud = await fetchTemplates()
+      // Map cloud user templates (exclude built-ins if any) to local shape
+      const userCloudTemplates: PromptTemplate[] = cloud
+        .filter(ct => !ct.is_built_in) // built-ins remain local
+        .map(ct => ({
+          id: ct.id,
+            name: ct.name,
+            description: ct.description || '',
+            category: ct.category as any,
+            isBuiltIn: false,
+            mode: ct.mode,
+            data: ct.data
+        }))
+      const merged = [
+        ...localAll.filter(t => t.isBuiltIn),
+        ...localAll.filter(t => !t.isBuiltIn && !userCloudTemplates.find(c => c.name === t.name)),
+        ...userCloudTemplates
+      ]
+      setTemplates(merged)
+      setCloudIds(new Set(userCloudTemplates.map(t => t.id)))
+    } catch (e) {
+      console.error('Failed to load cloud templates', e)
+      setTemplates(localAll)
+    } finally {
+      setLoadingCloud(false)
+    }
   }
 
   const handleLoadTemplate = (template: PromptTemplate) => {
@@ -52,17 +89,25 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
     onClose()
   }
 
-  const handleDeleteTemplate = (id: string) => {
-    if (confirm('Are you sure you want to delete this template?')) {
-      deleteTemplate(id)
-      loadTemplates()
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm('Delete this template?')) return
+    // If cloud template (id in cloudIds) delete from cloud, else local
+    try {
+      if (cloudIds.has(id)) {
+        await deleteTemplateCloud(id)
+      } else {
+        deleteTemplate(id)
+      }
+    } catch (e) {
+      alert('Failed to delete template')
     }
+    loadTemplates()
   }
 
-  const handleSaveCurrentAsTemplate = () => {
+  const handleSaveCurrentAsTemplate = async () => {
     if (!currentFormData || !newTemplateName) return
-
     try {
+      // Always save locally first
       saveTemplate({
         name: newTemplateName,
         description: newTemplateDescription,
@@ -71,18 +116,32 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
         mode: currentMode || 'general',
         data: currentFormData as PromptTemplate['data']
       })
-
+      // If logged in also push to cloud
+      if (user) {
+        try {
+          await createTemplate({
+            name: newTemplateName,
+            description: newTemplateDescription,
+            category: 'custom',
+            mode: currentMode || 'general',
+            data: currentFormData,
+            isBuiltIn: false
+          })
+        } catch (cloudErr) {
+          console.warn('Cloud save failed; template kept locally', cloudErr)
+        }
+      }
       setNewTemplateName('')
       setNewTemplateDescription('')
       setIsSaveDialogOpen(false)
-      loadTemplates()
+      await loadTemplates()
       setActiveCategory('custom')
     } catch (error) {
       alert('Failed to save template. Please try again.')
     }
   }
 
-  const filteredTemplates = getTemplatesByCategory(activeCategory as any)
+  const filteredTemplates = templates.filter(t => t.category === activeCategory)
 
   return (
     <>
@@ -123,6 +182,9 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                     transition={{ duration: 0.2 }}
                     className="grid gap-5 pr-4"
                   >
+                    {loadingCloud && (
+                      <div className="text-sm text-muted-foreground animate-pulse">Syncing cloud templates...</div>
+                    )}
                     {filteredTemplates.length === 0 ? (
                       <Card className="bg-muted/30 border-dashed">
                         <CardContent className="flex flex-col items-center justify-center py-16">
@@ -178,6 +240,16 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                               <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
                                 {template.mode === 'general' ? '📝 General' : '💻 Coding'}
                               </span>
+                              {cloudIds.has(template.id) && (
+                                <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/30">
+                                  Cloud
+                                </span>
+                              )}
+                              {!template.isBuiltIn && !cloudIds.has(template.id) && user && (
+                                <span className="px-3 py-1.5 rounded-full bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-semibold border border-yellow-500/30">
+                                  Local Only
+                                </span>
+                              )}
                               <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
                                 {template.data.tone || 'No tone'}
                               </span>
