@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate, LogIn, LogOut } from 'lucide-react'
+import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate, LogIn, LogOut, Cloud, CloudOff, User } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -59,25 +59,6 @@ export default function PromptForgePage() {
       document.documentElement.classList.add("dark")
     }
   }, [])
-
-  // Sync local templates to Supabase when user logs in
-  useEffect(() => {
-    if (user && !authLoading) {
-      const syncTemplates = async () => {
-        setIsSyncing(true)
-        const localTemplates = getUserTemplates()
-        if (localTemplates.length > 0) {
-          await syncLocalToSupabase(localTemplates, user.id)
-          toast({
-            title: "Templates Synced",
-            description: "Your local templates have been synced to the cloud.",
-          })
-        }
-        setIsSyncing(false)
-      }
-      syncTemplates()
-    }
-  }, [user, authLoading, toast])
 
   const toggleDarkMode = () => {
     const newMode = !darkMode
@@ -137,40 +118,12 @@ export default function PromptForgePage() {
     setGeneratedPrompt(prompt)
   }, [activeTab, persona, useCase, tone, outputFormat, topic, constraints, language, codeSnippet, errorMessage])
 
-  const generatePrompt = async () => {
+  const generatePrompt = () => {
     setIsGenerating(true)
     
     // Simulate generation delay for better UX
-    setTimeout(async () => {
+    setTimeout(() => {
       updateLivePreview()
-      
-      // Save to history
-      const historyData = {
-        persona,
-        useCase,
-        tone,
-        outputFormat,
-        topic,
-        constraints,
-        language: activeTab === 'coding' ? language : undefined,
-        codeSnippet: activeTab === 'coding' ? codeSnippet : undefined,
-        errorMessage: activeTab === 'coding' ? errorMessage : undefined,
-      }
-
-      if (user) {
-        // Save to Supabase if logged in
-        await addHistoryEntry(user.id, activeTab as 'general' | 'coding', generatedPrompt, historyData)
-      } else {
-        // Save to localStorage if not logged in
-        saveToLocalHistory({
-          id: `local-${Date.now()}`,
-          mode: activeTab as 'general' | 'coding',
-          prompt: generatedPrompt,
-          data: historyData,
-          createdAt: new Date().toISOString(),
-        })
-      }
-      
       setIsGenerating(false)
       
       // Save to history if there's a valid prompt
@@ -196,7 +149,7 @@ export default function PromptForgePage() {
       
       toast({
         title: "✨ Prompt Generated!",
-        description: user ? "Your optimized prompt is ready and saved to history." : "Your optimized prompt is ready.",
+        description: "Your optimized prompt is ready.",
       })
     }, 800)
   }
@@ -372,39 +325,19 @@ export default function PromptForgePage() {
                   className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-black/30 backdrop-blur-md border border-white/20"
                 >
                   <div className="flex items-center gap-1.5">
-                    {user ? (
-                      <>
-                        {isSyncing ? (
-                          <Cloud className="h-3 w-3 text-blue-500 animate-pulse" />
-                        ) : (
-                          <Cloud className="h-3 w-3 text-green-500" />
-                        )}
-                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                          {isSyncing ? "Syncing..." : "Synced"}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <CloudOff className="h-3 w-3 text-slate-500" />
-                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                          Offline
-                        </span>
-                      </>
-                    )}
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      Ready
+                    </span>
                   </div>
                 </motion.div>
                 
-<<<<<<< HEAD
                 {mounted && user ? (
-=======
-                {user && (
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-<<<<<<< HEAD
                     transition={{ duration: 0.5, delay: 0.22 }}
                   >
                     <Button
@@ -436,47 +369,6 @@ export default function PromptForgePage() {
                     </motion.div>
                   )
                 )}
-=======
-                    transition={{ duration: 0.5, delay: 0.23 }}
-                  >
-                    <Button 
-                      variant="ghost"
-                      onClick={() => {
-                        signOut()
-                        toast({
-                          title: "Signed Out",
-                          description: "You've been signed out successfully.",
-                        })
-                      }}
-                      className="rounded-full h-10 px-4 bg-white/50 dark:bg-black/30 hover:bg-white/70 dark:hover:bg-black/50 border border-white/20 backdrop-blur-md gap-2"
-                    >
-                      <User className="h-4 w-4" />
-                      <span className="text-sm font-medium hidden sm:inline">{user.email?.split('@')[0]}</span>
-                      <LogOut className="h-3 w-3" />
-                    </Button>
-                  </motion.div>
-                )}
-
-                {!user && !authLoading && (
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.23 }}
-                  >
-                    <Button 
-                      variant="ghost"
-                      onClick={() => setIsAuthDialogOpen(true)}
-                      className="rounded-full h-10 px-4 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white border-none backdrop-blur-md gap-2 shadow-lg"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      <span className="text-sm font-medium hidden sm:inline">Sign In</span>
-                    </Button>
-                  </motion.div>
-                )}
-                
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -745,16 +637,7 @@ export default function PromptForgePage() {
           currentMode={activeTab as 'general' | 'coding'}
         />
 
-<<<<<<< HEAD
         <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
-=======
-        {/* Auth Dialog */}
-        <AuthDialog
-          open={isAuthDialogOpen}
-          onOpenChange={setIsAuthDialogOpen}
-        />
-
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
         <Toaster />
       </div>
     </motion.div>
