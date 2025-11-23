@@ -45,7 +45,7 @@ export function AuthCard({
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-[32px] p-8 shadow-2xl transform transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-4xl p-8 shadow-2xl transform transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl">
         {/* Header with tabs and close button */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex bg-black/30 backdrop-blur-sm rounded-full p-1 border border-white/10">
@@ -246,7 +246,7 @@ export function AuthCard({
             className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl h-14 flex items-center justify-center hover:bg-black/30 transition-all duration-300 transform hover:scale-105 hover:shadow-lg active:scale-95"
           >
             <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-              <div className="w-4 h-4 bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 rounded-full"></div>
+              <div className="w-4 h-4 bg-linear-to-r from-red-500 via-yellow-500 to-blue-500 rounded-full"></div>
             </div>
           </button>
           <button

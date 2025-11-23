@@ -11,13 +11,10 @@ import { GeneralModeForm } from "@/components/prompt-forge/general-mode-form"
 import { CodingModeForm } from "@/components/prompt-forge/coding-mode-form"
 import { PromptPreview } from "@/components/prompt-forge/prompt-preview"
 import { TemplateLibrary } from "@/components/prompt-forge/template-library"
-import { AuthDialog } from "@/components/auth/auth-dialog"
-import { useAuth } from "@/contexts/auth-context"
+import { PromptHistory } from "@/components/prompt-forge/prompt-history"
 import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
 import type { PromptTemplate } from "@/lib/templates"
-import { getUserTemplates, saveTemplate as saveLocalTemplate, updateTemplate as updateLocalTemplate, deleteTemplate as deleteLocalTemplate } from "@/lib/templates"
-import { fetchUserTemplates, createTemplate as createSupabaseTemplate, updateTemplate as updateSupabaseTemplate, deleteTemplate as deleteSupabaseTemplate, syncLocalToSupabase } from "@/lib/supabase/template-service"
-import { addHistoryEntry, saveToLocalHistory } from "@/lib/supabase/history-service"
+import { saveToHistory, type HistoryItem } from "@/lib/history"
 
 export default function PromptForgePage() {
   const [darkMode, setDarkMode] = useState(false)
@@ -45,10 +42,8 @@ export default function PromptForgePage() {
   // Template library
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false)
 
-  // Auth and sync
-  const { user, signOut, loading: authLoading } = useAuth()
-  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
+  // History trigger for re-rendering
+  const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0)
 
   // Load dark mode preference from localStorage
   useEffect(() => {
@@ -171,6 +166,28 @@ export default function PromptForgePage() {
       }
       
       setIsGenerating(false)
+      
+      // Save to history if there's a valid prompt
+      if (generatedPrompt && (topic || persona || useCase)) {
+        try {
+          saveToHistory({
+            mode: activeTab as 'general' | 'coding',
+            prompt: generatedPrompt,
+            metadata: {
+              persona,
+              useCase,
+              tone,
+              outputFormat,
+              topic,
+              language: activeTab === 'coding' ? language : undefined
+            }
+          })
+          setHistoryUpdateTrigger(prev => prev + 1)
+        } catch (error) {
+          console.error('Failed to save to history:', error)
+        }
+      }
+      
       toast({
         title: "✨ Prompt Generated!",
         description: user ? "Your optimized prompt is ready and saved to history." : "Your optimized prompt is ready.",
@@ -244,6 +261,31 @@ export default function PromptForgePage() {
     toast({
       title: "Template Loaded",
       description: `"${template.name}" has been loaded into the form.`,
+    })
+  }
+
+  const restoreFromHistory = (item: HistoryItem) => {
+    // Switch to the appropriate tab
+    setActiveTab(item.mode)
+    
+    // Restore metadata
+    setPersona(item.metadata.persona || "")
+    setUseCase(item.metadata.useCase || "")
+    setTone(item.metadata.tone || "")
+    setOutputFormat(item.metadata.outputFormat || "")
+    setTopic(item.metadata.topic || "")
+    
+    // Restore coding-specific fields if applicable
+    if (item.mode === 'coding' && item.metadata.language) {
+      setLanguage(item.metadata.language)
+    }
+    
+    // Set the generated prompt
+    setGeneratedPrompt(item.prompt)
+    
+    toast({
+      title: "History Restored",
+      description: "Prompt has been restored from history.",
     })
   }
 
@@ -601,6 +643,20 @@ export default function PromptForgePage() {
             {/* Right Panel - Preview */}
             <PromptPreview prompt={generatedPrompt} />
           </div>
+
+          {/* History Panel - Bottom Section */}
+          <motion.div 
+            className="max-w-7xl mx-auto mt-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <PromptHistory 
+              onRestore={restoreFromHistory}
+              onHistoryUpdate={() => setHistoryUpdateTrigger(prev => prev + 1)}
+              key={historyUpdateTrigger}
+            />
+          </motion.div>
         </main>
 
         {/* Footer */}
