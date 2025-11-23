@@ -3,11 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User, Session } from "@supabase/supabase-js"
-<<<<<<< HEAD
 import { supabase } from "@/lib/supabase-client"
-=======
-import { createClient } from "@/lib/supabase/client"
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
 
 interface AuthContextType {
   user: User | null
@@ -25,11 +21,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-<<<<<<< HEAD
-  // Use pre-initialized client (returns undefined if env vars missing)
-=======
-  const supabase = createClient()
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
 
   useEffect(() => {
     // If Supabase is not configured, skip auth
@@ -107,11 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-<<<<<<< HEAD
           redirectTo: window.location.origin,
-=======
-          redirectTo: `${window.location.origin}/auth/callback`,
->>>>>>> 02602d67dd84e479d633e655d34ddc7afdbc3d4e
         },
       })
       if (error) throw error
