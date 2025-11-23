@@ -51,16 +51,27 @@ PromptForge is a cutting-edge web application designed to help you craft perfect
 - **One-Click Copy** - Copy prompts to clipboard with success animation
 - **Loading States** - Beautiful loading animations during generation
 - **Dark Mode** - Eye-friendly dark theme by default
+- **Template Library** - Access built-in templates for study, viva, coding, and writing
+- **Custom Templates** - Save your own templates for quick reuse
+
+### ☁️ Cloud Sync (Optional)
+- **Supabase Integration** - Optional cloud database for syncing data
+- **User Authentication** - Email/password and OAuth (Google, GitHub) login
+- **Cross-Device Sync** - Access your templates and history from anywhere
+- **Prompt History** - Track all your generated prompts
+- **Offline Support** - Works without login, syncs when you sign in
+- **Secure Storage** - Your data is protected with Row Level Security (RLS)
 
 ## 🚀 Tech Stack
 
-- **Framework:** [Next.js 16](https://nextjs.org/) with App Router
+- **Framework:** [Next.js 14](https://nextjs.org/) with App Router
 - **UI Library:** [React 19](https://react.dev/)
 - **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
 - **Components:** [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/)
 - **Animations:** [Framer Motion](https://www.framer.com/motion/)
 - **Icons:** [Lucide React](https://lucide.dev/)
 - **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Backend:** [Supabase](https://supabase.com/) (Optional - for cloud sync)
 
 ## 📦 Installation
 
@@ -85,7 +96,12 @@ PromptForge is a cutting-edge web application designed to help you craft perfect
    pnpm install
    ```
 
-3. **Run the development server**
+3. **(Optional) Set up Supabase for cloud sync**
+   - Follow the [Supabase Setup Guide](docs/SUPABASE_SETUP.md) to enable cloud sync
+   - Create a `.env.local` file with your Supabase credentials
+   - The app works perfectly without Supabase using localStorage
+
+4. **Run the development server**
    ```bash
    npm run dev
    # or
@@ -94,7 +110,7 @@ PromptForge is a cutting-edge web application designed to help you craft perfect
    pnpm dev
    ```
 
-4. **Open your browser**
+5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🎮 Usage
