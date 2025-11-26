@@ -42,9 +42,27 @@ export default function RootLayout({
   return (
     <html lang="en" className="antialiased">
       <head>
-        {/* DNS prefetch for external resources */}
+        {/* Resource hints for better performance */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Inline critical CSS for above-the-fold content */}
+        <style dangerouslySetInnerHTML={{__html: `
+          .antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+          .bg-background{background-color:var(--background)}
+          .text-foreground{color:var(--foreground)}
+          .font-sans{font-family:var(--font-sans)}
+          .min-h-screen{min-height:100vh}
+          .backdrop-blur-xl{backdrop-filter:blur(24px)}
+          .border-white\\/20{border-color:rgba(255,255,255,0.2)}
+          .bg-white\\/70{background-color:rgba(255,255,255,0.7)}
+          .dark .bg-black\\/40{background-color:rgba(0,0,0,0.4)}
+          .sticky{position:sticky}
+          .top-0{top:0}
+          .z-50{z-index:50}
+          .shadow-md{box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)}
+        `}} />
       </head>
       <body className="font-sans">
         <AuthProvider>{children}</AuthProvider>

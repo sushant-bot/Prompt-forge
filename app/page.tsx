@@ -8,10 +8,19 @@ import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, 
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { GeneralModeForm } from "@/components/prompt-forge/general-mode-form"
-import { CodingModeForm } from "@/components/prompt-forge/coding-mode-form"
 import { PromptPreview } from "@/components/prompt-forge/prompt-preview"
 import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
+
+// Lazy load form components - only load when tab is active
+const GeneralModeForm = dynamic(
+  () => import("@/components/prompt-forge/general-mode-form").then(mod => ({ default: mod.GeneralModeForm })),
+  { ssr: true }
+)
+
+const CodingModeForm = dynamic(
+  () => import("@/components/prompt-forge/coding-mode-form").then(mod => ({ default: mod.CodingModeForm })),
+  { ssr: false }
+)
 import type { PromptTemplate } from "@/lib/templates"
 import { saveToHistory, type HistoryItem } from "@/lib/history"
 import { AuthDialog } from "@/components/auth/auth-dialog"
@@ -273,11 +282,9 @@ export default function PromptForgePage() {
   }
 
   return (
-    <motion.div 
+    <div 
       className={`min-h-screen ${darkMode ? "dark" : ""}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      style={{ animation: mounted ? 'none' : 'fadeIn 0.3s ease-in' }}
     >
       {/* Optimized gradient background - simpler for better paint performance */}
       <div 
@@ -659,6 +666,6 @@ export default function PromptForgePage() {
         <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
         <Toaster />
       </div>
-    </motion.div>
+    </div>
   )
 }

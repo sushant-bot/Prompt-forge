@@ -179,4 +179,10 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 150px;
   }
+  
+  /* Lightweight fade-in animation */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
