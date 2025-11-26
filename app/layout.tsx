@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   generator: "Next.js",
   keywords: ["AI prompts", "prompt generator", "GPT prompts", "Claude prompts", "coding prompts", "prompt engineering"],
   authors: [{ name: "PromptForge" }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://promptforge.app"),
   openGraph: {
     title: "PromptForge - Professional AI Prompt Generator",
     description: "Create structured, high-quality prompts for general tasks and coding. 100% free, browser-based prompt generator.",
@@ -43,19 +42,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="antialiased">
       <head>
-        {/* Preload critical fonts */}
-        <link
-          rel="preload"
-          href="/fonts/inter.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
         {/* DNS prefetch for external resources */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-        {/* Canonical URL */}
-        <link rel="canonical" href={process.env.NEXT_PUBLIC_SITE_URL || "https://promptforge.app"} />
       </head>
       <body className="font-sans">
         <AuthProvider>{children}</AuthProvider>
