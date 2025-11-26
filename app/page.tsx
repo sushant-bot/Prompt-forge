@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import dynamic from "next/dynamic"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun, Copy, Trash2, Sparkles, MessageSquare, Code2, CheckCircle2, BookTemplate, LogIn, LogOut, Cloud, CloudOff, User } from 'lucide-react'
@@ -10,13 +11,36 @@ import { Toaster } from "@/components/ui/toaster"
 import { GeneralModeForm } from "@/components/prompt-forge/general-mode-form"
 import { CodingModeForm } from "@/components/prompt-forge/coding-mode-form"
 import { PromptPreview } from "@/components/prompt-forge/prompt-preview"
-import { TemplateLibrary } from "@/components/prompt-forge/template-library"
-import { PromptHistory } from "@/components/prompt-forge/prompt-history"
 import { generateGeneralPrompt, generateCodingPrompt, type GeneralPromptParams, type CodingPromptParams } from "@/lib/prompt-generator"
 import type { PromptTemplate } from "@/lib/templates"
 import { saveToHistory, type HistoryItem } from "@/lib/history"
 import { AuthDialog } from "@/components/auth/auth-dialog"
 import { useAuth } from "@/contexts/auth-context"
+
+// Lazy load heavy components with dynamic imports for better performance
+const TemplateLibrary = dynamic(
+  () => import("@/components/prompt-forge/template-library").then(mod => ({ default: mod.TemplateLibrary })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    ),
+    ssr: false,
+  }
+)
+
+const PromptHistory = dynamic(
+  () => import("@/components/prompt-forge/prompt-history").then(mod => ({ default: mod.PromptHistory })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 export default function PromptForgePage() {
   const [mounted, setMounted] = useState(false)
@@ -255,23 +279,18 @@ export default function PromptForgePage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Vibrant gradient background */}
-      <motion.div 
-        className="fixed inset-0 -z-10 bg-[radial-gradient(125%_125%_at_50%_101%,rgba(245,87,2,1)_10.5%,rgba(245,120,2,1)_16%,rgba(245,140,2,1)_17.5%,rgba(245,170,100,1)_25%,rgba(238,174,202,1)_40%,rgba(202,179,214,1)_65%,rgba(148,201,233,1)_100%)]" 
-        animate={{
-          opacity: [1, 0.95, 1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
+      {/* Optimized gradient background - simpler for better paint performance */}
+      <div 
+        className="fixed inset-0 -z-10"
+        style={{
+          background: 'radial-gradient(125% 125% at 50% 100%, rgba(245,87,2,0.3) 0%, rgba(238,174,202,0.4) 50%, rgba(148,201,233,0.5) 100%)'
         }}
       />
 
       {/* Overlay for better text readability */}
       <div className="min-h-screen transition-colors bg-white/10 dark:bg-black/20 backdrop-blur-[1px]">
-        {/* Header */}
-        <header className="border-b border-white/20 dark:border-white/10 bg-white/70 dark:bg-black/40 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-black/5">
+        {/* Header - optimized shadows */}
+        <header className="border-b border-white/20 dark:border-white/10 bg-white/70 dark:bg-black/40 backdrop-blur-xl sticky top-0 z-50 shadow-md">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               {/* Logo & Brand */}

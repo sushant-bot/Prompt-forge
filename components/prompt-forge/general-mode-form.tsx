@@ -50,26 +50,34 @@ export function GeneralModeForm({
           <Label htmlFor="persona">Persona Role</Label>
           <Input
             id="persona"
+            name="persona"
+            aria-label="Persona Role"
+            aria-describedby="persona-desc"
             placeholder="e.g., expert copywriter, data analyst, teacher"
             value={persona}
             onChange={(e) => setPersona(e.target.value)}
           />
+          <span id="persona-desc" className="sr-only">Enter the role or persona for the AI to adopt</span>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="useCase">Primary Use Case</Label>
           <Input
             id="useCase"
+            name="useCase"
+            aria-label="Primary Use Case"
+            aria-describedby="usecase-desc"
             placeholder="e.g., content creation, analysis, explanation"
             value={useCase}
             onChange={(e) => setUseCase(e.target.value)}
           />
+          <span id="usecase-desc" className="sr-only">Describe the primary purpose or use case</span>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="tone">Tone</Label>
           <Select value={tone} onValueChange={setTone}>
-            <SelectTrigger id="tone">
+            <SelectTrigger id="tone" aria-label="Select tone">
               <SelectValue placeholder="Select tone" />
             </SelectTrigger>
             <SelectContent>
@@ -86,7 +94,7 @@ export function GeneralModeForm({
         <div className="space-y-2">
           <Label htmlFor="outputFormat">Output Format</Label>
           <Select value={outputFormat} onValueChange={setOutputFormat}>
-            <SelectTrigger id="outputFormat">
+            <SelectTrigger id="outputFormat" aria-label="Select output format">
               <SelectValue placeholder="Select format" />
             </SelectTrigger>
             <SelectContent>
@@ -104,22 +112,30 @@ export function GeneralModeForm({
           <Label htmlFor="topic">Topic or Task Description</Label>
           <Textarea
             id="topic"
+            name="topic"
+            aria-label="Topic or Task Description"
+            aria-describedby="topic-desc"
             placeholder="Describe what you need help with..."
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             rows={4}
           />
+          <span id="topic-desc" className="sr-only">Main topic or task for the AI to address</span>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="constraints">Additional Instructions</Label>
           <Textarea
             id="constraints"
+            name="constraints"
+            aria-label="Additional Instructions"
+            aria-describedby="constraints-desc"
             placeholder="Any extra constraints or requirements..."
             value={constraints}
             onChange={(e) => setConstraints(e.target.value)}
             rows={3}
           />
+          <span id="constraints-desc" className="sr-only">Additional constraints or special requirements</span>
         </div>
       </CardContent>
     </Card>

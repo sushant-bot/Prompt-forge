@@ -235,7 +235,7 @@ export function PromptHistory({ onRestore, onHistoryUpdate }: PromptHistoryProps
                       transition={{ duration: 0.2, delay: index * 0.03 }}
                       layout
                     >
-                      <Card className="overflow-hidden hover:shadow-md transition-all duration-200 group border-muted/40">
+                      <Card className="history-item overflow-hidden hover:shadow-md transition-all duration-200 group border-muted/40">
                         <CardContent className="p-4">
                           {/* Header */}
                           <div className="flex items-start justify-between mb-2">
@@ -343,6 +343,8 @@ export function PromptHistory({ onRestore, onHistoryUpdate }: PromptHistoryProps
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
+            role="status"
+            aria-live="polite"
           >
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>

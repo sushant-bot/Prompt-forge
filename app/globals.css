@@ -119,10 +119,12 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    will-change: auto;
   }
   
   html {
     scroll-behavior: smooth;
+    font-display: swap;
   }
   
   body {
@@ -157,5 +159,24 @@
   /* Smooth focus transitions */
   *:focus-visible {
     transition: outline-offset 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  /* Optimize animations and transforms */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  
+  /* Performance optimization for large lists */
+  .history-item,
+  .template-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 150px;
   }
 }

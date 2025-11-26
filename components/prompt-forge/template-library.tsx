@@ -146,10 +146,10 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[85vh] p-0">
+        <DialogContent className="max-w-5xl max-h-[85vh] p-0" role="dialog" aria-modal="true" aria-labelledby="template-library-title">
           <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle className="text-2xl flex items-center gap-3">
-              <BookTemplate className="h-7 w-7 text-primary" />
+            <DialogTitle id="template-library-title" className="text-2xl flex items-center gap-3">
+              <BookTemplate className="h-7 w-7 text-primary" aria-hidden="true" />
               Template Library
             </DialogTitle>
             <DialogDescription className="text-base mt-2">
@@ -159,12 +159,15 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
 
           <div className="px-6 py-4">
             <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid w-full grid-cols-5 h-auto p-1.5 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-5 h-auto p-1.5 bg-muted/50" role="tablist" aria-label="Template categories">
                 {TEMPLATE_CATEGORIES.map(cat => (
                   <TabsTrigger 
                     key={cat.id} 
                     value={cat.id} 
                     className="gap-2 px-4 py-3 text-sm font-medium data-[state=active]:shadow-md transition-all"
+                    role="tab"
+                    aria-selected={activeCategory === cat.id}
+                    aria-controls={`panel-${cat.id}`}
                   >
                     <span className="text-base">{cat.icon}</span>
                     <span className="hidden sm:inline">{cat.name}</span>
@@ -201,7 +204,7 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
                       filteredTemplates.map(template => (
                         <Card 
                           key={template.id}
-                          className="hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer group"
+                          className="template-card hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer group"
                         >
                           <CardHeader className="pb-4">
                             <div className="flex items-start justify-between gap-4">
