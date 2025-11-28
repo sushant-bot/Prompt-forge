@@ -189,16 +189,26 @@
   /* Ensure backdrop-filter support */
   @supports (backdrop-filter: blur(0)) or (-webkit-backdrop-filter: blur(0)) {
     .backdrop-blur-xl {
-      backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(24px);
     }
     .backdrop-blur-lg {
-      backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
     }
     .backdrop-blur-md {
-      backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
     }
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+  
+  /* Background gradient utility */
+  .bg-gradient-radial {
+    background: radial-gradient(125% 125% at 50% 100%, rgba(245,87,2,0.3) 0%, rgba(238,174,202,0.4) 50%, rgba(148,201,233,0.5) 100%);
   }
 }

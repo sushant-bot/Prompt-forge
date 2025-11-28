@@ -21,15 +21,14 @@ const CodingModeForm = dynamic(
   () => import("@/components/prompt-forge/coding-mode-form").then(mod => ({ default: mod.CodingModeForm })),
   { ssr: false }
 )
-import type { PromptTemplate } from "@/lib/templates"
 import { saveToHistory, type HistoryItem } from "@/lib/history"
 import { AuthDialog } from "@/components/auth/auth-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { ModernHeader } from "@/components/ui/header-modern"
 
 // Lazy load heavy components with dynamic imports for better performance
-const TemplateLibrary = dynamic(
-  () => import("@/components/prompt-forge/template-library").then(mod => ({ default: mod.TemplateLibrary })),
+const PromptHistory = dynamic(
+  () => import("@/components/prompt-forge/prompt-history").then(mod => ({ default: mod.PromptHistory })),
   {
     loading: () => (
       <div className="flex items-center justify-center p-8">
@@ -40,8 +39,8 @@ const TemplateLibrary = dynamic(
   }
 )
 
-const PromptHistory = dynamic(
-  () => import("@/components/prompt-forge/prompt-history").then(mod => ({ default: mod.PromptHistory })),
+const TemplateLibrary = dynamic(
+  () => import("@/components/prompt-forge/template-library").then(mod => ({ default: mod.TemplateLibrary })),
   {
     loading: () => (
       <div className="flex items-center justify-center p-8">
@@ -78,14 +77,14 @@ export default function PromptForgePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  // Template library
-  const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false)
-
   // History trigger for re-rendering
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0)
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState("gpt-4")
+
+  // Template Library
+  const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false)
 
   // Load dark mode preference from localStorage and mark as mounted
   useEffect(() => {
@@ -235,28 +234,31 @@ export default function PromptForgePage() {
     })
   }
 
-  const loadTemplate = (template: PromptTemplate) => {
+  const loadFromHistory = (item: HistoryItem) => {
     // Switch to the appropriate tab
-    setActiveTab(template.mode)
+    setActiveTab(item.mode)
     
-    // Load template data
-    setPersona(template.data.persona || "")
-    setUseCase(template.data.useCase || "")
-    setTone(template.data.tone || "")
-    setOutputFormat(template.data.outputFormat || "")
-    setTopic(template.data.topic || "")
-    setConstraints(template.data.constraints || "")
+    // Load metadata
+    setPersona(item.metadata.persona || "")
+    setUseCase(item.metadata.useCase || "")
+    setTone(item.metadata.tone || "")
+    setOutputFormat(item.metadata.outputFormat || "")
+    setTopic(item.metadata.topic || "")
+    setConstraints("") // History doesn't store constraints
     
     // Load coding-specific fields if applicable
-    if (template.mode === 'coding') {
-      setLanguage(template.data.language || "")
-      setCodeSnippet(template.data.codeSnippet || "")
-      setErrorMessage(template.data.errorMessage || "")
+    if (item.mode === 'coding') {
+      setLanguage(item.metadata.language || "")
+      setCodeSnippet("")
+      setErrorMessage("")
     }
     
+    // Load the prompt
+    setGeneratedPrompt(item.prompt)
+    
     toast({
-      title: "Template Loaded",
-      description: `"${template.name}" has been loaded into the form.`,
+      title: "History Restored",
+      description: "Prompt has been restored from history.",
     })
   }
 
@@ -285,18 +287,36 @@ export default function PromptForgePage() {
     })
   }
 
+  const loadFromTemplate = (template: any) => {
+    // Load template data into form fields
+    setPersona(template.persona || "")
+    setTone(template.tone || "")
+    setOutputFormat(template.format || "")
+    setTopic(template.variables?.includes("topic") ? "" : "")
+    
+    // Set coding-specific fields if template has code variables
+    if (template.variables?.includes("code") || template.variables?.includes("language")) {
+      setActiveTab("coding")
+      setLanguage(template.variables?.includes("language") ? "" : "")
+    } else {
+      setActiveTab("general")
+    }
+    
+    // Store the template prompt for reference
+    setGeneratedPrompt(template.prompt)
+    
+    toast({
+      title: "Template Loaded",
+      description: `${template.name} has been loaded. Fill in the variables to use it.`,
+    })
+  }
+
   return (
     <div 
-      className={`min-h-screen ${darkMode ? "dark" : ""}`}
-      style={{ animation: mounted ? 'none' : 'fadeIn 0.3s ease-in' }}
+      className={`min-h-screen ${darkMode ? "dark" : ""} ${!mounted ? 'animate-fade-in' : ''}`}
     >
       {/* Optimized gradient background - simpler for better paint performance */}
-      <div 
-        className="fixed inset-0 -z-10"
-        style={{
-          background: 'radial-gradient(125% 125% at 50% 100%, rgba(245,87,2,0.3) 0%, rgba(238,174,202,0.4) 50%, rgba(148,201,233,0.5) 100%)'
-        }}
-      />
+      <div className="fixed inset-0 -z-10 bg-gradient-radial" />
 
       {/* Overlay for better text readability */}
       <div className="min-h-screen transition-colors bg-white/10 dark:bg-black/20 backdrop-blur-[1px]">
@@ -308,7 +328,6 @@ export default function PromptForgePage() {
           loading={loading}
           signOut={signOut}
           setIsAuthDialogOpen={setIsAuthDialogOpen}
-          setIsTemplateLibraryOpen={setIsTemplateLibraryOpen}
           copyPrompt={copyPrompt}
           generatedPrompt={generatedPrompt}
           mounted={mounted}
@@ -407,21 +426,19 @@ export default function PromptForgePage() {
               </Tabs>
 
               {/* Template Library Button */}
-              <motion.div 
+              <motion.div
                 className="mb-4"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
               >
-                <Button 
+                <Button
                   onClick={() => setIsTemplateLibraryOpen(true)}
                   variant="outline"
-                  className="w-full bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 hover:bg-white dark:hover:bg-white/10 h-12 gap-2"
-                  size="lg"
+                  className="w-full bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 hover:bg-white dark:hover:bg-white/10 h-12 font-semibold hover:scale-[1.02] transition-all"
                 >
-                  <BookTemplate className="h-5 w-5" />
-                  <span>Browse Templates</span>
-                  <span className="ml-auto text-xs text-muted-foreground">Study, Viva, Coding & More</span>
+                  <BookTemplate className="h-5 w-5 mr-2" />
+                  Browse Template Library
                 </Button>
               </motion.div>
 
@@ -524,26 +541,13 @@ export default function PromptForgePage() {
           </div>
         </motion.footer>
 
-        {/* Template Library Dialog */}
+        <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
         <TemplateLibrary
           isOpen={isTemplateLibraryOpen}
           onClose={() => setIsTemplateLibraryOpen(false)}
-          onLoadTemplate={loadTemplate}
-          currentFormData={{
-            persona,
-            useCase,
-            tone,
-            outputFormat,
-            topic,
-            constraints,
-            language,
-            codeSnippet,
-            errorMessage
-          }}
-          currentMode={activeTab as 'general' | 'coding'}
+          onLoadTemplate={loadFromTemplate}
+          currentPrompt={generatedPrompt}
         />
-
-        <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
         <Toaster />
       </div>
     </div>

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { MenuToggleIcon } from '@/components/ui/menu-toggle-icon';
 import { useScroll } from '@/components/ui/use-scroll';
 import { 
-  Moon, Sun, Copy, Sparkles, BookTemplate, LogIn, LogOut, History
+  Moon, Sun, Copy, Sparkles, LogIn, LogOut, History
 } from 'lucide-react';
 
 interface ModernHeaderProps {
@@ -16,7 +16,6 @@ interface ModernHeaderProps {
   loading: boolean;
   signOut: () => void;
   setIsAuthDialogOpen: (open: boolean) => void;
-  setIsTemplateLibraryOpen: (open: boolean) => void;
   copyPrompt: () => void;
   generatedPrompt: string;
   mounted: boolean;
@@ -40,7 +39,6 @@ export function ModernHeader({
   loading,
   signOut,
   setIsAuthDialogOpen,
-  setIsTemplateLibraryOpen,
   copyPrompt,
   generatedPrompt,
   mounted,
@@ -51,15 +49,6 @@ export function ModernHeader({
   const scrolled = useScroll(10);
 
   const quickActions = [
-    {
-      label: 'Templates',
-      icon: BookTemplate,
-      onClick: () => {
-        setIsTemplateLibraryOpen(true);
-        setOpen(false);
-      },
-      variant: 'ghost' as const,
-    },
     {
       label: 'Copy',
       icon: Copy,

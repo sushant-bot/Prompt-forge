@@ -1,22 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { BookTemplate, Trash2, Edit, Save, X, Plus } from "lucide-react"
+import { X, BookOpen, Mic2, Code2, PenTool, Star, Loader, Save, Trash2 } from "lucide-react"
 import { 
   getAllTemplates, 
-  getTemplatesByCategory, 
   saveTemplate, 
   deleteTemplate,
-  TEMPLATE_CATEGORIES,
   type PromptTemplate 
 } from "@/lib/templates"
 import { useAuth } from "@/contexts/auth-context"
@@ -25,21 +14,39 @@ import { fetchTemplates, createTemplate, deleteTemplateCloud } from "@/lib/supab
 interface TemplateLibraryProps {
   isOpen: boolean
   onClose: () => void
-  onLoadTemplate: (template: PromptTemplate) => void
+  onLoadTemplate: (template: any) => void
   currentFormData?: Partial<PromptTemplate['data']>
   currentMode?: 'general' | 'coding'
+  currentPrompt?: string
 }
 
-export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormData, currentMode }: TemplateLibraryProps) {
+const categoryIcons: Record<string, React.ReactNode> = {
+  study: <BookOpen className="w-5 h-5" />,
+  viva: <Mic2 className="w-5 h-5" />,
+  coding: <Code2 className="w-5 h-5" />,
+  writing: <PenTool className="w-5 h-5" />,
+  custom: <Star className="w-5 h-5" />,
+}
+
+const categoryLabels: Record<string, string> = {
+  study: "Study",
+  viva: "Viva/Interview",
+  coding: "Coding",
+  writing: "Writing",
+  custom: "Custom",
+}
+
+export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormData, currentMode, currentPrompt }: TemplateLibraryProps) {
+  const [activeCategory, setActiveCategory] = useState<string>("study")
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState("")
+  const [newTemplateDescription, setNewTemplateDescription] = useState("")
+  
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
   const [cloudIds, setCloudIds] = useState<Set<string>>(new Set())
   const [loadingCloud, setLoadingCloud] = useState(false)
   const { user } = useAuth()
-  const [activeCategory, setActiveCategory] = useState<string>('study')
-  const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null)
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
-  const [newTemplateName, setNewTemplateName] = useState('')
-  const [newTemplateDescription, setNewTemplateDescription] = useState('')
 
   useEffect(() => {
     if (isOpen) {
@@ -57,18 +64,20 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
     setLoadingCloud(true)
     try {
       const cloud = await fetchTemplates()
-      // Map cloud user templates (exclude built-ins if any) to local shape
       const userCloudTemplates: PromptTemplate[] = cloud
-        .filter(ct => !ct.is_built_in) // built-ins remain local
+        .filter(ct => !ct.is_built_in)
         .map(ct => ({
           id: ct.id,
-            name: ct.name,
-            description: ct.description || '',
-            category: ct.category as any,
-            isBuiltIn: false,
-            mode: ct.mode,
-            data: ct.data
+          name: ct.name,
+          description: ct.description || '',
+          category: ct.category as any,
+          isBuiltIn: false,
+          mode: ct.mode,
+          data: ct.data,
+          createdAt: ct.created_at || new Date().toISOString(),
+          updatedAt: ct.updated_at || new Date().toISOString()
         }))
+      
       const merged = [
         ...localAll.filter(t => t.isBuiltIn),
         ...localAll.filter(t => !t.isBuiltIn && !userCloudTemplates.find(c => c.name === t.name)),
@@ -84,267 +93,261 @@ export function TemplateLibrary({ isOpen, onClose, onLoadTemplate, currentFormDa
     }
   }
 
+  const filteredTemplates = templates.filter(t => t.category === activeCategory)
+
   const handleLoadTemplate = (template: PromptTemplate) => {
-    onLoadTemplate(template)
-    onClose()
+    setLoadingId(template.id)
+    setTimeout(() => {
+      onLoadTemplate({ ...template, ...template.data })
+      setLoadingId(null)
+      onClose()
+    }, 500)
   }
 
-  const handleDeleteTemplate = async (id: string) => {
+  const handleDeleteTemplate = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
     if (!confirm('Delete this template?')) return
-    // If cloud template (id in cloudIds) delete from cloud, else local
+    
     try {
       if (cloudIds.has(id)) {
         await deleteTemplateCloud(id)
       } else {
         deleteTemplate(id)
       }
+      loadTemplates()
     } catch (e) {
       alert('Failed to delete template')
     }
-    loadTemplates()
   }
 
-  const handleSaveCurrentAsTemplate = async () => {
-    if (!currentFormData || !newTemplateName) return
+  const handleSaveTemplate = async () => {
+    if (!newTemplateName.trim() || (!currentFormData && !currentPrompt)) return
+
     try {
-      // Always save locally first
-      saveTemplate({
+      const templateData = {
         name: newTemplateName,
-        description: newTemplateDescription,
-        category: 'custom',
+        description: newTemplateDescription || "Custom saved template",
+        category: 'custom' as const,
         isBuiltIn: false,
         mode: currentMode || 'general',
-        data: currentFormData as PromptTemplate['data']
-      })
-      // If logged in also push to cloud
-      if (user) {
-        try {
-          await createTemplate({
-            name: newTemplateName,
-            description: newTemplateDescription,
-            category: 'custom',
-            mode: currentMode || 'general',
-            data: currentFormData,
-            isBuiltIn: false
-          })
-        } catch (cloudErr) {
-          console.warn('Cloud save failed; template kept locally', cloudErr)
+        data: {
+          persona: currentFormData?.persona || '',
+          useCase: currentFormData?.useCase || '',
+          tone: currentFormData?.tone || '',
+          outputFormat: currentFormData?.outputFormat || '',
+          topic: currentFormData?.topic || '',
+          constraints: currentFormData?.constraints || currentPrompt || '',
+          language: currentFormData?.language,
+          codeSnippet: currentFormData?.codeSnippet,
+          errorMessage: currentFormData?.errorMessage
         }
       }
-      setNewTemplateName('')
-      setNewTemplateDescription('')
-      setIsSaveDialogOpen(false)
+
+      saveTemplate(templateData)
+
+      if (user) {
+        try {
+          await createTemplate(templateData)
+        } catch (cloudErr) {
+          console.warn('Cloud save failed', cloudErr)
+        }
+      }
+
+      setNewTemplateName("")
+      setNewTemplateDescription("")
+      setShowSaveDialog(false)
       await loadTemplates()
       setActiveCategory('custom')
     } catch (error) {
-      alert('Failed to save template. Please try again.')
+      alert('Failed to save template')
     }
   }
 
-  const filteredTemplates = templates.filter(t => t.category === activeCategory)
+  if (!isOpen) return null
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[85vh] p-0" role="dialog" aria-modal="true" aria-labelledby="template-library-title">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle id="template-library-title" className="text-2xl flex items-center gap-3">
-              <BookTemplate className="h-7 w-7 text-primary" aria-hidden="true" />
-              Template Library
-            </DialogTitle>
-            <DialogDescription className="text-base mt-2">
-              Choose from built-in templates or your saved templates to quickly start creating prompts
-            </DialogDescription>
-          </DialogHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-hidden">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-          <div className="px-6 py-4">
-            <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="grid w-full grid-cols-5 h-auto p-1.5 bg-muted/50" role="tablist" aria-label="Template categories">
-                {TEMPLATE_CATEGORIES.map(cat => (
-                  <TabsTrigger 
-                    key={cat.id} 
-                    value={cat.id} 
-                    className="gap-2 px-4 py-3 text-sm font-medium data-[state=active]:shadow-md transition-all"
-                    role="tab"
-                    aria-selected={activeCategory === cat.id}
-                    aria-controls={`panel-${cat.id}`}
-                  >
-                    <span className="text-base">{cat.icon}</span>
-                    <span className="hidden sm:inline">{cat.name}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+      {/* Modal */}
+      <div className="relative w-full max-w-4xl h-[90vh] rounded-2xl bg-background/95 backdrop-blur-xl border border-border shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b border-border bg-muted/30 p-6 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Template Library</h2>
+            <p className="text-sm text-muted-foreground mt-1">Choose a template to jumpstart your prompt</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-muted rounded-lg transition text-muted-foreground hover:text-foreground"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-              <ScrollArea className="h-[420px] mt-6">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeCategory}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="grid gap-5 pr-4"
-                  >
-                    {loadingCloud && (
-                      <div className="text-sm text-muted-foreground animate-pulse">Syncing cloud templates...</div>
-                    )}
-                    {filteredTemplates.length === 0 ? (
-                      <Card className="bg-muted/30 border-dashed">
-                        <CardContent className="flex flex-col items-center justify-center py-16">
-                          <BookTemplate className="h-16 w-16 text-muted-foreground/60 mb-4" />
-                          <p className="text-muted-foreground text-center text-base">
-                            No templates in this category yet.
-                            {activeCategory === 'custom' && (
-                              <span className="block mt-3 text-sm">Save your current form as a template to get started!</span>
-                            )}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      filteredTemplates.map(template => (
-                        <Card 
-                          key={template.id}
-                          className="template-card hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer group"
-                        >
-                          <CardHeader className="pb-4">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
-                                  {template.name}
-                                </CardTitle>
-                                <CardDescription className="mt-2 text-sm leading-relaxed">
-                                  {template.description}
-                                </CardDescription>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLoadTemplate(template)}
-                                  className="bg-primary/10 hover:bg-primary/20 text-primary font-medium px-4 py-2 h-9"
-                                >
-                                  Load
-                                </Button>
-                                {!template.isBuiltIn && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteTemplate(template.id)}
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 px-3 py-2 h-9"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <div className="flex flex-wrap gap-2">
-                              <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
-                                {template.mode === 'general' ? '📝 General' : '💻 Coding'}
-                              </span>
-                              {cloudIds.has(template.id) && (
-                                <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/30">
-                                  Cloud
-                                </span>
-                              )}
-                              {!template.isBuiltIn && !cloudIds.has(template.id) && user && (
-                                <span className="px-3 py-1.5 rounded-full bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-semibold border border-yellow-500/30">
-                                  Local Only
-                                </span>
-                              )}
-                              <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                                {template.data.tone || 'No tone'}
-                              </span>
-                              <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                                {template.data.outputFormat || 'No format'}
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </ScrollArea>
-            </Tabs>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          {/* Category Tabs */}
+          <div className="border-b border-white/20 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl p-4 flex gap-2 overflow-x-auto shrink-0 sticky top-0 z-10">
+            {Object.entries(categoryLabels).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(key)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition ${
+                  activeCategory === key
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {categoryIcons[key]}
+                {label}
+              </button>
+            ))}
           </div>
 
-          <DialogFooter className="px-6 py-5 border-t bg-muted/20">
-            <Button variant="outline" onClick={onClose} className="px-6">
-              Close
-            </Button>
-            {currentFormData && (
-              <Button onClick={() => setIsSaveDialogOpen(true)} className="gap-2 px-6">
-                <Save className="h-4 w-4" />
-                Save Current as Template
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Templates Grid */}
+          <div className="p-6 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {loadingCloud && (
+                <div className="col-span-full text-sm text-muted-foreground animate-pulse flex items-center gap-2 justify-center py-4">
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Syncing cloud templates...
+                </div>
+              )}
+              
+              {filteredTemplates.length > 0 ? (
+                filteredTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="group relative rounded-xl border border-border bg-card/50 backdrop-blur-sm p-4 hover:border-primary/50 hover:shadow-lg transition flex flex-col"
+                  >
+                    {/* Template Card Content */}
+                    <div className="flex flex-col h-full">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-base font-semibold text-foreground line-clamp-1">{template.name}</h3>
+                        {!template.isBuiltIn && (
+                          <button
+                            onClick={(e) => handleDeleteTemplate(e, template.id)}
+                            className="text-muted-foreground hover:text-destructive transition p-1"
+                            aria-label="Delete template"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground mb-4 grow line-clamp-3">{template.description}</p>
 
-      {/* Save Template Dialog */}
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Save className="h-5 w-5 text-primary" />
-              Save Current Form as Template
-            </DialogTitle>
-            <DialogDescription className="text-sm mt-2">
-              Give your template a name and description to save it for later use
-            </DialogDescription>
-          </DialogHeader>
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-primary/20 text-primary border border-primary/30">
+                          {template.mode === 'general' ? 'General' : 'Coding'}
+                        </span>
+                        {cloudIds.has(template.id) && (
+                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            Cloud
+                          </span>
+                        )}
+                      </div>
 
-          <div className="space-y-5 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template-name" className="text-sm font-medium">
-                Template Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="template-name"
-                placeholder="e.g., My Custom Analysis Template"
-                value={newTemplateName}
-                onChange={(e) => setNewTemplateName(e.target.value)}
-                className="h-10"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="template-description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="template-description"
-                placeholder="Describe what this template is for..."
-                value={newTemplateDescription}
-                onChange={(e) => setNewTemplateDescription(e.target.value)}
-                rows={3}
-                className="resize-none"
-              />
+                      {/* Load Button */}
+                      <button
+                        onClick={() => handleLoadTemplate(template)}
+                        disabled={loadingId === template.id}
+                        className="w-full px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm disabled:opacity-50 transition flex items-center justify-center gap-2 mt-auto"
+                      >
+                        {loadingId === template.id ? (
+                          <>
+                            <Loader className="w-4 h-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          "Load Template"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Star className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No templates found in this category.</p>
+                  {activeCategory === 'custom' && (
+                    <p className="text-sm text-muted-foreground/70 mt-2">Save your current form as a template to get started!</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsSaveDialogOpen(false)}
-              className="px-6"
+        {/* Footer */}
+        <div className="border-t border-border bg-muted/30 p-4 flex gap-3 justify-end shrink-0">
+          {(currentFormData || currentPrompt) && (
+            <button
+              onClick={() => setShowSaveDialog(true)}
+              className="px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
             >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveCurrentAsTemplate}
-              disabled={!newTemplateName}
-              className="px-6"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Template
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+              <Save className="w-4 h-4" />
+              Save Current as Template
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-medium text-sm transition"
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Save Template Dialog */}
+        {showSaveDialog && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="relative rounded-xl border border-border bg-background p-6 shadow-2xl max-w-sm w-full mx-4">
+              <h3 className="text-lg font-bold text-foreground mb-4">Save as Template</h3>
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Name</label>
+                  <input
+                    type="text"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="Enter template name..."
+                    className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-input text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Description</label>
+                  <textarea
+                    value={newTemplateDescription}
+                    onChange={(e) => setNewTemplateDescription(e.target.value)}
+                    placeholder="Optional description..."
+                    rows={2}
+                    className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-input text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveDialog(false)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-medium text-sm transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveTemplate}
+                  disabled={!newTemplateName.trim()}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm disabled:opacity-50 transition"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
